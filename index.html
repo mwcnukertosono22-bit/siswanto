@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dino Tug of War - Edukasi Seru</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PapaParse for potential Google Sheet integration -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Fredoka', sans-serif;
+            overflow: hidden; /* Mencegah scroll */
+            touch-action: manipulation; /* Optimasi touch */
+            background-color: #222;
+        }
+
+        /* Animasi Splash */
+        @keyframes zoomIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-zoom {
+            animation: zoomIn 1.5s ease-out forwards;
+        }
+
+        /* Animasi Tali & Dino */
+        .game-element {
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Kustomisasi Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888; 
+            border-radius: 4px;
+        }
+        
+        .btn-answer:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ==========================================
+        // KONFIGURASI & ASET
+        // ==========================================
+        const ASSETS = {
+            bgArena: 'https://i.imgur.com/hu8aBFB.png',
+            bgTitle: 'https://i.imgur.com/hu8aBFB.png', // Menggunakan arena sebagai cover sementara jika tidak ada cover khusus
+            dinoLeft: 'https://i.imgur.com/wNVwFKJ.png',
+            dinoRight: 'https://i.imgur.com/UilWyZd.png',
+            bgm: 'https://github.com/ilindekguru/Lagulagu/raw/refs/heads/main/Kids%20Toddler%20Background%20Music%20Song%20For%20Videos%20-%20Background%20Music%20for%20Videos.mp3',
+            winSfx: 'https://github.com/ilindekguru/Lagulagu/raw/refs/heads/main/brass-fanfare-with-timpani-and-winchimes-reverberated-146260.mp3'
+        };
+
+        // Placeholder untuk Google Sheet (Fitur Masa Depan)
+        const GOOGLE_SHEET_URL = ""; 
+
+        // ==========================================
+        // DATABASE SOAL (IPA FOTOSINTESIS)
+        // ==========================================
+        const INITIAL_DATA = {
+            "Konsep Dasar": [
+                { question: "Apa bahan utama fotosintesis yang diambil dari udara?", icon: "🌬️", options: ["Karbondioksida", "Oksigen", "Nitrogen", "Helium"], correct: "Karbondioksida" },
+                { question: "Cairan apa yang dibutuhkan akar tanaman?", icon: "💧", options: ["Air", "Minyak", "Susu", "Sirup"], correct: "Air" },
+                { question: "Zat hijau daun disebut...", icon: "🍃", options: ["Klorofil", "Klorin", "Kloroform", "Kloroplas"], correct: "Klorofil" },
+                { question: "Sumber energi utama fotosintesis adalah...", icon: "☀️", options: ["Matahari", "Lampu", "Baterai", "Api"], correct: "Matahari" },
+                { question: "Fotosintesis terjadi pada bagian...", icon: "🌿", options: ["Daun", "Akar", "Bunga", "Buah"], correct: "Daun" },
+                { question: "Hasil fotosintesis yang kita hirup adalah...", icon: "🫁", options: ["Oksigen", "Karbondioksida", "Asap", "Debu"], correct: "Oksigen" },
+                { question: "Kapan biasanya fotosintesis terjadi secara alami?", icon: "⏰", options: ["Siang hari", "Malam hari", "Subuh", "Tengah malam"], correct: "Siang hari" },
+                { question: "Organisme yang bisa membuat makanan sendiri disebut...", icon: "🦠", options: ["Autotrof", "Heterotrof", "Omnivora", "Karnivora"], correct: "Autotrof" },
+                { question: "Makanan cadangan tumbuhan disimpan dalam bentuk...", icon: "🥔", options: ["Amilum", "Lemak", "Protein", "Vitamin"], correct: "Amilum" },
+                { question: "Gas yang dikeluarkan tumbuhan saat malam hari adalah...", icon: "🌑", options: ["Karbondioksida", "Oksigen", "Hidrogen", "Metana"], correct: "Karbondioksida" },
+                { question: "Pori-pori kecil di daun untuk pertukaran gas disebut...", icon: "🚪", options: ["Stomata", "Lentisel", "Epidermis", "Kutikula"], correct: "Stomata" },
+                { question: "Warna hijau pada daun disebabkan oleh...", icon: "🎨", options: ["Pigmen Klorofil", "Cahaya Matahari", "Air Hujan", "Pupuk"], correct: "Pigmen Klorofil" },
+                { question: "Air diangkut dari akar ke daun melalui pembuluh...", icon: "pipe", options: ["Xilem", "Floem", "Kambium", "Korteks"], correct: "Xilem" },
+                { question: "Hasil fotosintesis diedarkan ke seluruh tubuh melalui...", icon: "🚚", options: ["Floem", "Xilem", "Akar", "Batang"], correct: "Floem" },
+                { question: "Fungsi utama akar selain menyerap air adalah...", icon: "⚓", options: ["Menopang tumbuhan", "Melakukan fotosintesis", "Menghasilkan bunga", "Menyimpan biji"], correct: "Menopang tumbuhan" },
+                { question: "Apa yang terjadi jika tumbuhan tidak mendapat cahaya?", icon: "🥀", options: ["Layu & Mati", "Tumbuh Raksasa", "Berbunga Cepat", "Berubah Merah"], correct: "Layu & Mati" },
+                { question: "Tumbuhan kaktus melakukan fotosintesis di bagian...", icon: "🌵", options: ["Batang", "Duri", "Akar", "Bunga"], correct: "Batang" },
+                { question: "Selain tumbuhan, makhluk hidup yang berfotosintesis adalah...", icon: "🌊", options: ["Alga", "Jamur", "Cacing", "Ikan"], correct: "Alga" },
+                { question: "Bagian sel tempat terjadinya fotosintesis adalah...", icon: "cell", options: ["Kloroplas", "Inti Sel", "Dinding Sel", "Vakuola"], correct: "Kloroplas" },
+                { question: "Hewan sangat bergantung pada tumbuhan karena tumbuhan menghasilkan...", icon: "🍽️", options: ["Makanan & O2", "Air & Tanah", "Cahaya & Panas", "Angin & Hujan"], correct: "Makanan & O2" }
+            ],
+            "Reaksi Kimia": [
+                { question: "Rumus kimia Karbondioksida adalah...", icon: "🧪", options: ["CO2", "H2O", "O2", "C6H12O6"], correct: "CO2" },
+                { question: "Rumus kimia Air adalah...", icon: "💧", options: ["H2O", "CO2", "O2", "NaCl"], correct: "H2O" },
+                { question: "Rumus kimia Oksigen adalah...", icon: "🎈", options: ["O2", "O3", "CO", "H2"], correct: "O2" },
+                { question: "Glukosa (Gula) memiliki rumus kimia...", icon: "🍬", options: ["C6H12O6", "H2SO4", "NaCl", "CO2"], correct: "C6H12O6" },
+                { question: "Reaksi fotosintesis mengubah energi cahaya menjadi energi...", icon: "⚡", options: ["Kimia", "Gerak", "Panas", "Bunyi"], correct: "Kimia" },
+                { question: "Produk sampingan fotosintesis yang dilepas ke udara adalah...", icon: "💨", options: ["Oksigen", "Karbon", "Nitrogen", "Uap Air"], correct: "Oksigen" },
+                { question: "Bahan baku anorganik fotosintesis adalah...", icon: "🧱", options: ["CO2 dan H2O", "Glukosa", "Amilum", "Protein"], correct: "CO2 dan H2O" },
+                { question: "Reaksi terang terjadi di bagian kloroplas yang disebut...", icon: "☀️", options: ["Grana", "Stroma", "Membran", "Lumen"], correct: "Grana" },
+                { question: "Reaksi gelap terjadi di bagian kloroplas yang disebut...", icon: "🌑", options: ["Stroma", "Grana", "Tilakoid", "Lamela"], correct: "Stroma" },
+                { question: "Pemecahan air oleh cahaya disebut...", icon: "💥", options: ["Fotolisis", "Hidrolisis", "Glikolisis", "Osmosis"], correct: "Fotolisis" },
+                { question: "Siklus Calvin terjadi pada reaksi...", icon: "🔄", options: ["Gelap", "Terang", "Kimia", "Fisika"], correct: "Gelap" },
+                { question: "Enzim yang berperan dalam fiksasi CO2 adalah...", icon: "🧬", options: ["Rubisco", "Amilase", "Lipase", "Pepsin"], correct: "Rubisco" },
+                { question: "Cahaya matahari terdiri dari partikel energi yang disebut...", icon: "💡", options: ["Foton", "Proton", "Elektron", "Neutron"], correct: "Foton" },
+                { question: "Warna cahaya yang paling baik untuk fotosintesis adalah...", icon: "🌈", options: ["Merah & Biru", "Hijau & Kuning", "Ungu & Nila", "Putih & Hitam"], correct: "Merah & Biru" },
+                { question: "Warna cahaya yang dipantulkan oleh daun adalah...", icon: "🛡️", options: ["Hijau", "Merah", "Biru", "Hitam"], correct: "Hijau" },
+                { question: "Berapa molekul CO2 dibutuhkan untuk membuat 1 glukosa?", icon: "🧮", options: ["6", "1", "12", "2"], correct: "6" },
+                { question: "ATP adalah singkatan dari...", icon: "🔋", options: ["Adenosin Tripospat", "Asam Amino", "Air Tanah", "Anti Toxin"], correct: "Adenosin Tripospat" },
+                { question: "NADPH berfungsi sebagai...", icon: "🚚", options: ["Pembawa Elektron", "Sumber Air", "Pigmen Warna", "Dinding Sel"], correct: "Pembawa Elektron" },
+                { question: "Faktor suhu sangat mempengaruhi kerja...", icon: "🌡️", options: ["Enzim", "Cahaya", "Air", "Udara"], correct: "Enzim" },
+                { question: "Jika CO2 habis, laju fotosintesis akan...", icon: "📉", options: ["Berhenti/Turun", "Meningkat", "Tetap", "Meledak"], correct: "Berhenti/Turun" }
+            ],
+            "Eksperimen & Manfaat": [
+                { question: "Percobaan Ingenhousz membuktikan bahwa fotosintesis menghasilkan...", icon: "🧪", options: ["Oksigen", "Amilum", "Air", "Cahaya"], correct: "Oksigen" },
+                { question: "Tanaman air yang sering dipakai uji Ingenhousz adalah...", icon: "🌿", options: ["Hydrilla", "Kaktus", "Mawar", "Padi"], correct: "Hydrilla" },
+                { question: "Percobaan Sachs membuktikan bahwa fotosintesis menghasilkan...", icon: "🥔", options: ["Amilum", "Oksigen", "Lemak", "Protein"], correct: "Amilum" },
+                { question: "Cairan untuk menguji adanya amilum pada daun adalah...", icon: "🧴", options: ["Lugol/Yodium", "Alkohol", "Air Panas", "Spiritus"], correct: "Lugol/Yodium" },
+                { question: "Fungsi merebus daun dengan alkohol adalah...", icon: "🔥", options: ["Melarutkan klorofil", "Mematikan sel", "Menambah warna", "Memasak daun"], correct: "Melarutkan klorofil" },
+                { question: "Jika ditetesi Lugol, bagian daun yang berfotosintesis berwarna...", icon: "⚫", options: ["Biru Tua/Hitam", "Pucat", "Merah", "Kuning"], correct: "Biru Tua/Hitam" },
+                { question: "Bagian daun yang ditutup aluminium foil saat uji Sachs akan berwarna...", icon: "⚪", options: ["Pucat/Coklat", "Biru Tua", "Hitam", "Ungu"], correct: "Pucat/Coklat" },
+                { question: "Manfaat fotosintesis bagi atmosfer bumi adalah...", icon: "🌍", options: ["Mengurangi Efek Rumah Kaca", "Menambah Panas", "Membuat Hujan", "Menipiskan Ozon"], correct: "Mengurangi Efek Rumah Kaca" },
+                { question: "Hutan disebut paru-paru dunia karena...", icon: "🌳", options: ["Suplai Oksigen Besar", "Banyak Air", "Tempat Hewan", "Banyak Kayu"], correct: "Suplai Oksigen Besar" },
+                { question: "Tanpa fotosintesis, rantai makanan akan...", icon: "⛓️", options: ["Putus/Hancur", "Lebih Kuat", "Tetap Sama", "Berubah Arah"], correct: "Putus/Hancur" },
+                { question: "Bahan bakar fosil (batu bara) sebenarnya berasal dari...", icon: "⛏️", options: ["Tumbuhan Purba", "Batu Gunung", "Lava", "Pasir"], correct: "Tumbuhan Purba" },
+                { question: "Fotosintesis membantu siklus...", icon: "♻️", options: ["Karbon", "Besi", "Emas", "Plastik"], correct: "Karbon" },
+                { question: "Gelembung udara pada percobaan Hydrilla adalah gas...", icon: "🫧", options: ["Oksigen", "Nitrogen", "Metana", "Helium"], correct: "Oksigen" },
+                { question: "Tumbuhan yang ditanam di tempat gelap akan mengalami...", icon: "🌱", options: ["Etiolasi (Pucat)", "Fotosintesis Cepat", "Kekerdilan", "Pembusukan"], correct: "Etiolasi (Pucat)" },
+                { question: "Kertas timah pada uji Sachs berfungsi untuk...", icon: "🚫", options: ["Menghalangi Cahaya", "Menambah Panas", "Menyerap Air", "Hiasan"], correct: "Menghalangi Cahaya" },
+                { question: "Bakteri yang bisa berfotosintesis disebut...", icon: "🦠", options: ["Cyanobacteria", "E. Coli", "Salmonella", "Virus"], correct: "Cyanobacteria" },
+                { question: "Energi kimia hasil fotosintesis disimpan dalam ikatan...", icon: "🔗", options: ["Karbon", "Besi", "Emas", "Perak"], correct: "Karbon" },
+                { question: "Bagi manusia, hasil fotosintesis berupa buah adalah sumber...", icon: "🍎", options: ["Vitamin & Energi", "Racun", "Limbah", "Penyakit"], correct: "Vitamin & Energi" },
+                { question: "Proses fotosintesis menjaga keseimbangan kadar... di udara", icon: "⚖️", options: ["CO2 dan O2", "N2 dan H2", "Ar dan He", "Au dan Ag"], correct: "CO2 dan O2" },
+                { question: "Tanaman herbal menyimpan hasil fotosintesis di akar sebagai...", icon: "🥕", options: ["Umbi", "Buah", "Biji", "Bunga"], correct: "Umbi" }
+            ]
+        };
+
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // ==========================================
+        // UTILITY FUNCTIONS
+        // ==========================================
+        const shuffleArray = (array) => {
+            let currentIndex = array.length, randomIndex;
+            const newArray = [...array];
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [newArray[currentIndex], newArray[randomIndex]] = [newArray[randomIndex], newArray[currentIndex]];
+            }
+            return newArray;
+        };
+
+        // ==========================================
+        // COMPONENT: MAIN APP
+        // ==========================================
+        const App = () => {
+            // State Global
+            const [gameState, setGameState] = useState('splash'); // splash, title, menu, playing, winner
+            const [questionBank, setQuestionBank] = useState(INITIAL_DATA);
+            const [selectedCategory, setSelectedCategory] = useState(null);
+            const [winner, setWinner] = useState(null);
+
+            // Audio Refs
+            const bgmRef = useRef(new Audio(ASSETS.bgm));
+            const winSfxRef = useRef(new Audio(ASSETS.winSfx));
+
+            // Setup Audio
+            useEffect(() => {
+                bgmRef.current.loop = true;
+                bgmRef.current.volume = 0.4;
+                winSfxRef.current.volume = 1.0;
+            }, []);
+
+            // Helper Audio Control
+            const playBGM = () => bgmRef.current.play().catch(e => console.log("Audio autoplay blocked", e));
+            const pauseBGM = () => bgmRef.current.pause();
+            const playWin = () => {
+                pauseBGM();
+                winSfxRef.current.currentTime = 0;
+                winSfxRef.current.play().catch(e => console.log("SFX error", e));
+            };
+
+            // Fullscreen Toggle
+            const toggleFullscreen = () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            };
+
+            // Navigasi
+            const goToMenu = () => {
+                setGameState('menu');
+                playBGM();
+                bgmRef.current.currentTime = 0; // Restart BGM loop
+            };
+
+            const startGame = (category) => {
+                setSelectedCategory(category);
+                setGameState('playing');
+                pauseBGM(); // Hening saat main
+            };
+
+            const handleWin = (player) => {
+                setWinner(player);
+                setGameState('winner');
+                playWin();
+            };
+
+            // Render Render
+            return (
+                <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden select-none">
+                    {/* Fullscreen Button */}
+                    <button 
+                        onClick={toggleFullscreen}
+                        className="fixed top-4 right-4 z-50 bg-black/50 p-2 rounded-full hover:bg-white/20 transition"
+                        title="Fullscreen"
+                    >
+                        <i className="fas fa-expand text-white"></i>
+                    </button>
+
+                    {gameState === 'splash' && <SplashScreen onFinish={() => setGameState('title')} />}
+                    {gameState === 'title' && <TitleScreen onStart={goToMenu} />}
+                    {gameState === 'menu' && <MenuScreen data={questionBank} onSelect={startGame} />}
+                    {gameState === 'playing' && (
+                        <GameArena 
+                            category={selectedCategory} 
+                            questions={questionBank[selectedCategory]} 
+                            onWin={handleWin}
+                        />
+                    )}
+                    {gameState === 'winner' && (
+                        <WinnerScreen winner={winner} onBack={goToMenu} />
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // COMPONENT: SPLASH SCREEN
+        // ==========================================
+        const SplashScreen = ({ onFinish }) => {
+            useEffect(() => {
+                const timer = setTimeout(onFinish, 6000);
+                return () => clearTimeout(timer);
+            }, [onFinish]);
+
+            return (
+                <div className="w-full h-full bg-white flex flex-col items-center justify-center text-black">
+                    <div className="animate-zoom text-center">
+                        <h1 className="text-4xl md:text-6xl font-bold mb-4 text-green-600">Dino Tug of War</h1>
+                        <p className="text-xl text-gray-600">Created by SISWANTO</p>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // COMPONENT: TITLE SCREEN
+        // ==========================================
+        const TitleScreen = ({ onStart }) => {
+            return (
+                <div className="w-full h-full relative flex items-end justify-center pb-20">
+                    {/* Background */}
+                    <img src={ASSETS.bgTitle} alt="Background" className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/30"></div>
+
+                    {/* Button */}
+                    <button 
+                        onClick={onStart}
+                        className="relative z-10 bg-green-500 hover:bg-green-600 text-white text-3xl font-bold py-4 px-12 rounded-full shadow-lg transform hover:scale-110 transition-all border-4 border-white animate-bounce"
+                    >
+                        MASUK
+                    </button>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // COMPONENT: MENU SCREEN
+        // ==========================================
+        const MenuScreen = ({ data, onSelect }) => {
+            const categories = Object.keys(data);
+
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-800 p-8">
+                    <h2 className="text-4xl font-bold mb-8 text-yellow-400">PILIH TOPIK</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+                        {categories.map((cat, idx) => (
+                            <button 
+                                key={idx}
+                                onClick={() => onSelect(cat)}
+                                className="bg-white/10 hover:bg-white/20 border-2 border-white/30 p-8 rounded-2xl flex flex-col items-center justify-center gap-4 transition-all hover:scale-105 h-48"
+                            >
+                                <span className="text-5xl">📚</span>
+                                <span className="text-xl font-bold text-center">{cat}</span>
+                                <span className="text-sm text-gray-400">{data[cat].length} Soal</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // COMPONENT: GAME ARENA (CORE)
+        // ==========================================
+        const GameArena = ({ category, questions, onWin }) => {
+            // Game State
+            const [ropePos, setRopePos] = useState(50); // 0 (Left Win) - 100 (Right Win)
+            
+            // Player States (1 = Left/Green, 2 = Right/Red)
+            const [p1Index, setP1Index] = useState(0);
+            const [p2Index, setP2Index] = useState(0);
+            const [p1Freeze, setP1Freeze] = useState(false);
+            const [p2Freeze, setP2Freeze] = useState(false);
+            const [p1Effect, setP1Effect] = useState(null); // 'correct', 'wrong'
+            const [p2Effect, setP2Effect] = useState(null);
+
+            // Randomize Question Order for each player independently
+            const p1Questions = useMemo(() => shuffleArray(questions), [questions]);
+            const p2Questions = useMemo(() => shuffleArray(questions), [questions]);
+
+            // Current Question Data
+            const q1 = p1Questions[p1Index % p1Questions.length];
+            const q2 = p2Questions[p2Index % p2Questions.length];
+
+            // Shuffle Options (useMemo to prevent reshuffle on render)
+            const opt1 = useMemo(() => shuffleArray(q1.options), [q1]);
+            const opt2 = useMemo(() => shuffleArray(q2.options), [q2]);
+
+            const handleAnswer = (player, selectedOption) => {
+                if (player === 1 && p1Freeze) return;
+                if (player === 2 && p2Freeze) return;
+
+                const currentQ = player === 1 ? q1 : q2;
+                const isCorrect = selectedOption === currentQ.correct;
+
+                if (isCorrect) {
+                    // Visual Feedback
+                    if (player === 1) setP1Effect('correct');
+                    else setP2Effect('correct');
+                    setTimeout(() => {
+                        if (player === 1) setP1Effect(null);
+                        else setP2Effect(null);
+                    }, 500);
+
+                    // Move Rope
+                    const moveAmount = 5;
+                    let newPos = player === 1 ? ropePos - moveAmount : ropePos + moveAmount;
+                    setRopePos(newPos);
+
+                    // Next Question
+                    if (player === 1) setP1Index(prev => prev + 1);
+                    else setP2Index(prev => prev + 1);
+
+                    // Check Win
+                    if (newPos <= 15) onWin('TIM A (HIJAU)');
+                    if (newPos >= 85) onWin('TIM B (MERAH)');
+
+                } else {
+                    // Wrong Logic
+                    if (player === 1) {
+                        setP1Freeze(true);
+                        setP1Effect('wrong');
+                        setTimeout(() => { setP1Freeze(false); setP1Effect(null); }, 5000);
+                    } else {
+                        setP2Freeze(true);
+                        setP2Effect('wrong');
+                        setTimeout(() => { setP2Freeze(false); setP2Effect(null); }, 5000);
+                    }
+                }
+            };
+
+            return (
+                <div className="w-full h-full flex flex-col">
+                    {/* BAGIAN ATAS (SOAL) - 15% */}
+                    <div className="h-[15%] flex bg-gray-800 border-b-4 border-gray-700">
+                        {/* Soal P1 */}
+                        <div className="w-1/2 p-2 flex items-center justify-center border-r border-gray-600 relative">
+                             {p1Freeze && <div className="absolute inset-0 bg-red-900/80 z-20 flex items-center justify-center font-bold text-red-200 animate-pulse">TERKUNCI (SALAH!)</div>}
+                            <div className="text-center">
+                                <span className="text-2xl mr-2">{q1.icon}</span>
+                                <span className="text-sm md:text-base font-semibold">{q1.question}</span>
+                            </div>
+                        </div>
+                        {/* Soal P2 */}
+                        <div className="w-1/2 p-2 flex items-center justify-center relative">
+                             {p2Freeze && <div className="absolute inset-0 bg-red-900/80 z-20 flex items-center justify-center font-bold text-red-200 animate-pulse">TERKUNCI (SALAH!)</div>}
+                            <div className="text-center">
+                                <span className="text-2xl mr-2">{q2.icon}</span>
+                                <span className="text-sm md:text-base font-semibold">{q2.question}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* BAGIAN TENGAH (ARENA) - 60% */}
+                    <div className="h-[60%] relative overflow-hidden">
+                        <img src={ASSETS.bgArena} className="absolute inset-0 w-full h-full object-cover" alt="Arena" />
+                        
+                        {/* Tali & Indikator */}
+                        <div className="absolute top-1/2 left-0 w-full transform -translate-y-1/2 pointer-events-none">
+                            {/* Garis Tali */}
+                            <div className="h-2 bg-yellow-700 w-full shadow-lg relative">
+                                {/* Simpul Tali */}
+                                <div 
+                                    className="absolute top-1/2 w-8 h-8 bg-red-600 border-4 border-yellow-900 rounded-full transform -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-300"
+                                    style={{ left: `${ropePos}%` }}
+                                ></div>
+                            </div>
+                        </div>
+
+                        {/* Karakter Dino (Posisi berdasarkan ropePos) */}
+                        {/* Dino Kiri (Tim A) */}
+                        <div 
+                            className="absolute top-1/2 transform -translate-y-1/2 transition-all duration-300 game-element"
+                            style={{ left: `calc(${ropePos}% - 150px)`, width: '120px' }} 
+                        >
+                            <img src={ASSETS.dinoLeft} alt="Dino Green" className="w-full drop-shadow-2xl" />
+                            <div className="text-center bg-green-600 text-xs rounded px-2 py-1 mt-2 font-bold shadow">TIM A</div>
+                        </div>
+
+                        {/* Dino Kanan (Tim B) */}
+                        <div 
+                            className="absolute top-1/2 transform -translate-y-1/2 transition-all duration-300 game-element"
+                            style={{ left: `calc(${ropePos}% + 30px)`, width: '120px' }} 
+                        >
+                            <img src={ASSETS.dinoRight} alt="Dino Red" className="w-full drop-shadow-2xl" />
+                            <div className="text-center bg-red-600 text-xs rounded px-2 py-1 mt-2 font-bold shadow">TIM B</div>
+                        </div>
+                        
+                        {/* Feedback Visual Overlay */}
+                        {p1Effect === 'correct' && <div className="absolute left-1/4 top-1/2 -translate-y-1/2 text-green-400 text-6xl font-bold animate-bounce z-50">BENAR!</div>}
+                        {p2Effect === 'correct' && <div className="absolute right-1/4 top-1/2 -translate-y-1/2 text-green-400 text-6xl font-bold animate-bounce z-50">BENAR!</div>}
+
+                        {/* Batas Menang Indikator */}
+                        <div className="absolute top-0 bottom-0 left-[15%] border-l-2 border-dashed border-white/30 text-white/30 text-xs p-1">Batas Menang A</div>
+                        <div className="absolute top-0 bottom-0 right-[15%] border-r-2 border-dashed border-white/30 text-white/30 text-xs p-1 text-right">Batas Menang B</div>
+
+                    </div>
+
+                    {/* BAGIAN BAWAH (JAWABAN) - 25% */}
+                    <div className="h-[25%] flex">
+                        {/* Panel P1 */}
+                        <div className={`w-1/2 p-2 grid grid-cols-2 gap-2 bg-green-900/90 ${p1Freeze ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                            {opt1.map((opt, idx) => (
+                                <button 
+                                    key={idx} 
+                                    onClick={() => handleAnswer(1, opt)}
+                                    className="btn-answer bg-green-100 hover:bg-green-200 text-green-900 font-bold rounded-lg shadow-md text-sm md:text-base transition-transform"
+                                >
+                                    {opt}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Panel P2 */}
+                        <div className={`w-1/2 p-2 grid grid-cols-2 gap-2 bg-red-900/90 ${p2Freeze ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                             {opt2.map((opt, idx) => (
+                                <button 
+                                    key={idx} 
+                                    onClick={() => handleAnswer(2, opt)}
+                                    className="btn-answer bg-red-100 hover:bg-red-200 text-red-900 font-bold rounded-lg shadow-md text-sm md:text-base transition-transform"
+                                >
+                                    {opt}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // COMPONENT: WINNER SCREEN
+        // ==========================================
+        const WinnerScreen = ({ winner, onBack }) => {
+            return (
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 animate-zoom">
+                    <h2 className="text-3xl text-yellow-300 mb-2 font-bold">PEMENANGNYA ADALAH</h2>
+                    <h1 className="text-6xl md:text-8xl font-black text-white mb-8 text-center drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                        {winner}
+                    </h1>
+                    <div className="flex gap-4">
+                        <button 
+                            onClick={onBack}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold text-xl shadow-lg transition"
+                        >
+                            Main Lagi
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
